@@ -47,7 +47,7 @@
             position: fixed;
             right: 20px;
             top: 20px;
-            z-index: 11;
+            z-index: 1000; /* Plus haut que le menu */
             background: rgba(255, 255, 255, 0.1);
             border: none;
             color: white;
@@ -56,8 +56,8 @@
             width: 40px;
             height: 40px;
             cursor: pointer;
-            transition: all 0.3s ease;
-        }
+            transition: all 0.3s;
+         }
 
         .toggle-ui:hover {
             background: rgba(255, 255, 255, 0.2);
@@ -351,10 +351,64 @@
             display: flex;
             flex-direction: column;
             align-items: flex-end;
+            bottom: 120px;
             padding: 15px;
             background: rgba(0, 0, 0, 0.3);
             border-radius: 10px;
             backdrop-filter: blur(5px);
+        }
+        .ui-container {
+            position: fixed;
+            top: 0;
+            right: -320px;
+            width: 320px;
+            max-height: 100vh;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding-bottom: 200px;
+            z-index: 950; /* Plus haut que la signature */
+        }
+        
+        .playlist-panel {
+            position: fixed;
+            top: 0;
+            left: 20px;
+            width: 300px;
+            max-height: calc(100vh - 100px);
+            overflow-y: auto;
+        }
+        
+        .signature {
+            position: fixed;
+            bottom: 100px; /* Au-dessus des contrôles de lecture */
+            right: 20px;
+            z-index: 900;
+        }
+        
+        /* Styles mobiles */
+        @media (max-width: 768px) {
+            .ui-container {
+                padding-bottom: 250px;
+                width: 100%;
+                right: -100%;
+            }
+            .playlist-panel {
+                left: 10px;
+                width: calc(100% - 20px);
+                max-height: calc(100vh - 150px);
+            }
+        
+            .signature {
+                bottom: 140px;
+                right: 10px;
+                font-size: 0.9em;
+            }
+        
+            .player-controls {
+                background: rgba(0, 0, 0, 0.9);
+            }
         }
     </style>
 </head>
