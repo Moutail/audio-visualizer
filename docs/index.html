@@ -1,0 +1,1102 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visualiseur Musical Avancé</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Arial', sans-serif;
+        }
+
+        body {
+            background: #000;
+            overflow: hidden;
+            color: white;
+        }
+
+        canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+
+        .ui-container {
+            position: fixed;
+            top: 0;
+            right: -320px;
+            width: 320px;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            transition: right 0.3s ease;
+            z-index: 10;
+            padding: 20px;
+            box-shadow: -5px 0 15px rgba(0, 0, 0, 0.5);
+        }
+
+        .ui-container.active {
+            right: 0;
+        }
+
+        .toggle-ui {
+            position: fixed;
+            right: 20px;
+            top: 20px;
+            z-index: 11;
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            color: white;
+            padding: 10px;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .toggle-ui:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .control-group {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+        }
+
+        .control-group h3 {
+            margin-bottom: 15px;
+            color: #00ff95;
+            font-size: 16px;
+        }
+
+        .control-item {
+            margin-bottom: 10px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 14px;
+            color: #ccc;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 5px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 15px;
+            height: 15px;
+            background: #00ff95;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+
+        .preset-buttons {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+
+        .preset-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            color: white;
+            padding: 8px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .preset-btn:hover {
+            background: rgba(0, 255, 149, 0.2);
+        }
+
+        .preset-btn.active {
+            background: #00ff95;
+            color: black;
+        }
+
+        .player-controls {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+            display: flex;
+            gap: 15px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+        }
+
+        .player-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        .player-btn:hover {
+            background: rgba(0, 255, 149, 0.2);
+        }
+
+        .playlist-container {
+            max-height: calc(100vh - 400px);
+            overflow-y: auto;
+            margin-top: 20px;
+        }
+
+        .playlist-item {
+            padding: 10px;
+            margin-bottom: 5px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .playlist-item:hover {
+            background: rgba(0, 255, 149, 0.1);
+        }
+
+        .playlist-item.active {
+            background: rgba(0, 255, 149, 0.2);
+        }
+
+        /* Scrollbar personnalisé */
+        ::-webkit-scrollbar {
+            width: 5px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #00ff95;
+            border-radius: 3px;
+        }
+
+        /* Animations */
+        @keyframes pulseButton {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        .pulse {
+            animation: pulseButton 1s infinite;
+        }
+        canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .playlist-panel {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            width: 300px;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            border-radius: 10px;
+            padding: 15px;
+            z-index: 10;
+            color: white;
+            transition: all 0.3s ease;
+        }
+        
+        .playlist-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .playlist-header h3 {
+            color: #00ff95;
+            margin: 0;
+        }
+        
+        .playlist-count {
+            font-size: 0.9em;
+            color: rgba(255, 255, 255, 0.6);
+        }
+        
+        .playlist-items {
+            max-height: 400px;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: #00ff95 rgba(255, 255, 255, 0.1);
+        }
+        
+        .playlist-item {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            margin: 5px 0;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .playlist-item:hover {
+            background: rgba(0, 255, 149, 0.1);
+        }
+        
+        .playlist-item.active {
+            background: rgba(0, 255, 149, 0.2);
+            border-left: 3px solid #00ff95;
+        }
+        
+        .playlist-item-info {
+            flex-grow: 1;
+        }
+        
+        .playlist-item-title {
+            font-size: 0.9em;
+            margin-bottom: 3px;
+        }
+        
+        .playlist-item-duration {
+            font-size: 0.8em;
+            color: rgba(255, 255, 255, 0.5);
+        }
+        
+        .playlist-controls {
+            display: flex;
+            gap: 5px;
+        }
+        
+        .playlist-btn {
+            background: none;
+            border: none;
+            color: rgba(255, 255, 255, 0.5);
+            cursor: pointer;
+            padding: 5px;
+            font-size: 1.2em;
+            transition: all 0.3s;
+        }
+        
+        .playlist-btn:hover {
+            color: #00ff95;
+        }
+        .signature {
+            position: fixed;
+            bottom: 80px;
+            right: 20px;
+            text-align: right;
+            z-index: 1000;
+            font-family: 'Arial', sans-serif;
+        }
+        
+        .brand {
+            font-size: 2em;
+            font-weight: bold;
+            color: #00ff95;
+            text-shadow: 0 0 10px rgba(0, 255, 149, 0.5);
+            letter-spacing: 2px;
+            margin-bottom: 5px;
+        }
+        
+        .author {
+            font-size: 1.2em;
+            color: rgba(255, 255, 255, 0.8);
+            text-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
+        }
+        .logo {
+            margin-bottom: 10px;
+        }
+        
+        .logo svg {
+            filter: drop-shadow(0 0 5px rgba(0, 255, 149, 0.5));
+        }
+        
+        .signature {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            backdrop-filter: blur(5px);
+        }
+    </style>
+</head>
+<body>
+    <canvas id="visualizer"></canvas>
+
+    <button class="toggle-ui">⚙️</button>
+
+    <div class="ui-container">
+        <div class="control-group">
+            <h3>Présets</h3>
+            <div class="preset-buttons">
+                <button class="preset-btn" data-preset="calm">Calme</button>
+                <button class="preset-btn" data-preset="energetic">Énergique</button>
+                <button class="preset-btn" data-preset="psychedelic">Psychédélique</button>
+                <button class="preset-btn" data-preset="minimal">Minimal</button>
+            </div>
+        </div>
+
+        <div class="control-group">
+            <h3>Particules</h3>
+            <div class="control-item">
+                <label>Densité Globale</label>
+                <input type="range" id="particleDensity" min="0" max="1" step="0.1" value="0.5">
+            </div>
+            <div class="control-item">
+                <label>Densité Cercle</label>
+                <input type="range" id="circleParticleDensity" min="0" max="1" step="0.1" value="0.7">
+            </div>
+        </div>
+
+        <div class="control-group">
+            <h3>Couleurs</h3>
+            <div class="control-item">
+                <label>Vitesse Transition</label>
+                <input type="range" id="colorSpeed" min="0" max="1" step="0.1" value="0.5">
+            </div>
+            <div class="control-item">
+                <label>Intensité Flash</label>
+                <input type="range" id="flashIntensity" min="0" max="1" step="0.1" value="0.6">
+            </div>
+        </div>
+
+        <div class="control-group">
+            <h3>Réactivité Audio</h3>
+            <div class="control-item">
+                <label>Sensibilité</label>
+                <input type="range" id="audioSensitivity" min="0" max="1" step="0.1" value="0.5">
+            </div>
+            <div class="control-item">
+                <label>Bass Boost</label>
+                <input type="range" id="bassBoost" min="0" max="1" step="0.1" value="0.6">
+            </div>
+        </div>
+
+        <div class="control-group">
+            <h3>Effets Spéciaux</h3>
+            <div class="preset-buttons">
+                <button class="preset-btn" onclick="triggerEffect('explosion')">Explosion</button>
+                <button class="preset-btn" onclick="triggerEffect('wave')">Vague</button>
+                <button class="preset-btn" onclick="triggerEffect('spiral')">Spirale</button>
+                <button class="preset-btn" onclick="triggerEffect('scatter')">Dispersion</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="playlist-panel">
+        <div class="playlist-header">
+            <h3>Playlist</h3>
+            <span class="playlist-count">0 morceaux</span>
+        </div>
+        <div class="playlist-items" id="playlistItems">
+            <!-- Les morceaux seront ajoutés ici dynamiquement -->
+        </div>
+    </div>
+
+    <div class="player-controls">
+        <button class="player-btn" id="prevBtn">⏮️</button>
+        <button class="player-btn" id="playBtn">▶️</button>
+        <button class="player-btn" id="nextBtn">⏭️</button>
+        <button class="player-btn" id="addSongBtn">➕</button>
+        <input type="file" id="fileInput" accept="audio/*" multiple style="display: none;">
+    </div>
+
+    <script>
+        // Je vais continuer avec le code JavaScript dans la prochaine partie
+        class ParticleSystem {
+            constructor(visualizer) {
+                this.visualizer = visualizer;
+                this.particles = [];
+                this.circleParticles = [];
+                this.waves = [];
+                this.effects = [];
+                this.baseHue = 0;
+                this.secondaryHue = 180;
+                this.lastTime = 0;
+            }
+        
+            createParticle(x, y, type = 'ambient') {
+                const particle = {
+                    x,
+                    y,
+                    type,
+                    size: type === 'circle' ? 2 + Math.random() * 2 : 1 + Math.random() * 2,
+                    speedX: (Math.random() - 0.5) * 2,
+                    speedY: (Math.random() - 0.5) * 2,
+                    life: 1,
+                    maxLife: 1,
+                    hue: this.baseHue + Math.random() * 30 - 15
+                };
+        
+                if (type === 'circle') {
+                    this.circleParticles.push(particle);
+                } else {
+                    this.particles.push(particle);
+                }
+            }
+        
+            createWave(x, y, color) {
+                this.waves.push({
+                    x,
+                    y,
+                    radius: 0,
+                    color,
+                    alpha: 1,
+                    speed: 5 + Math.random() * 5
+                });
+            }
+        
+            update(audioData, deltaTime) {
+                const settings = this.visualizer.settings;
+                this.baseHue = (this.baseHue + deltaTime * settings.colorSpeed * 0.1) % 360;
+                this.secondaryHue = (this.baseHue + 180) % 360;
+        
+                // Mise à jour des particules ambiantes
+                this.particles = this.particles.filter(p => {
+                    p.x += p.speedX;
+                    p.y += p.speedY;
+                    p.life -= 0.002;
+        
+                    if (audioData) {
+                        const index = Math.floor(p.x / this.visualizer.width * audioData.length);
+                        const audioValue = audioData[index] / 255;
+                        p.size = p.size * 0.95 + audioValue * 3 * 0.05;
+                    }
+        
+                    // Wrap around screen
+                    if (p.x < 0) p.x = this.visualizer.width;
+                    if (p.x > this.visualizer.width) p.x = 0;
+                    if (p.y < 0) p.y = this.visualizer.height;
+                    if (p.y > this.visualizer.height) p.y = 0;
+        
+                    return p.life > 0;
+                });
+        
+                // Mise à jour des particules du cercle
+                this.circleParticles = this.circleParticles.filter(p => {
+                    const angle = Math.atan2(p.y - this.visualizer.height/2, p.x - this.visualizer.width/2);
+                    const targetRadius = this.visualizer.baseRadius;
+                    const currentRadius = Math.sqrt(Math.pow(p.x - this.visualizer.width/2, 2) + 
+                                                 Math.pow(p.y - this.visualizer.height/2, 2));
+                    const radiusDiff = targetRadius - currentRadius;
+        
+                    p.speedX += Math.cos(angle) * radiusDiff * 0.0001;
+                    p.speedY += Math.sin(angle) * radiusDiff * 0.0001;
+        
+                    p.speedX *= 0.99;
+                    p.speedY *= 0.99;
+        
+                    p.x += p.speedX;
+                    p.y += p.speedY;
+        
+                    if (audioData) {
+                        const index = Math.floor((angle + Math.PI) / (Math.PI * 2) * audioData.length);
+                        const audioValue = audioData[index] / 255;
+                        p.size = p.size * 0.95 + audioValue * 4 * 0.05;
+                    }
+        
+                    return true;
+                });
+        
+                // Mise à jour des vagues
+                this.waves = this.waves.filter(wave => {
+                    wave.radius += wave.speed;
+                    wave.alpha -= 0.01;
+                    return wave.alpha > 0;
+                });
+        
+                // Maintenir le nombre de particules
+                while (this.particles.length < settings.particleDensity * 200) {
+                    this.createParticle(
+                        Math.random() * this.visualizer.width,
+                        Math.random() * this.visualizer.height,
+                        'ambient'
+                    );
+                }
+        
+                while (this.circleParticles.length < settings.circleParticleDensity * 100) {
+                    const angle = Math.random() * Math.PI * 2;
+                    const radius = this.visualizer.baseRadius;
+                    this.createParticle(
+                        this.visualizer.width/2 + Math.cos(angle) * radius,
+                        this.visualizer.height/2 + Math.sin(angle) * radius,
+                        'circle'
+                    );
+                }
+            }
+        
+            draw(ctx) {
+                // Particules ambiantes
+                this.particles.forEach(p => {
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                    ctx.fillStyle = `hsla(${p.hue}, 80%, 50%, ${p.life})`;
+                    ctx.fill();
+                });
+        
+                // Particules du cercle et connexions
+                this.circleParticles.forEach((p1, i) => {
+                    ctx.beginPath();
+                    ctx.arc(p1.x, p1.y, p1.size, 0, Math.PI * 2);
+                    ctx.fillStyle = `hsla(${this.secondaryHue}, 80%, 50%, ${p1.life})`;
+                    ctx.fill();
+        
+                    // Connexions
+                    this.circleParticles.slice(i + 1).forEach(p2 => {
+                        const dx = p1.x - p2.x;
+                        const dy = p1.y - p2.y;
+                        const dist = Math.sqrt(dx * dx + dy * dy);
+                        if (dist < 50) {
+                            ctx.beginPath();
+                            ctx.moveTo(p1.x, p1.y);
+                            ctx.lineTo(p2.x, p2.y);
+                            ctx.strokeStyle = `hsla(${this.secondaryHue}, 80%, 50%, ${(1 - dist/50) * 0.2})`;
+                            ctx.stroke();
+                        }
+                    });
+                });
+
+                
+                // Vagues
+                this.waves.forEach(wave => {
+                    ctx.beginPath();
+                    ctx.arc(wave.x, wave.y, wave.radius, 0, Math.PI * 2);
+                    ctx.strokeStyle = wave.color.replace('1)', `${wave.alpha})`);
+                    ctx.stroke();
+                });
+            }
+            updateDimensions(width, height) {
+                // Mettre à jour les dimensions pour les particules
+                this.width = width;
+                this.height = height;
+                
+                // Ajuster la position des particules si nécessaire
+                this.particles.forEach(p => {
+                    if (p.x > width) p.x = width;
+                    if (p.y > height) p.y = height;
+                });
+                
+                this.circleParticles.forEach(p => {
+                    const centerX = width / 2;
+                    const centerY = height / 2;
+                    const angle = Math.atan2(p.y - centerY, p.x - centerX);
+                    const radius = this.visualizer.baseRadius;
+                    
+                    p.x = centerX + Math.cos(angle) * radius;
+                    p.y = centerY + Math.sin(angle) * radius;
+                });
+            }
+            
+        }
+        
+        // Je continue avec la classe principale AudioVisualizer dans la prochaine partie
+        class AudioVisualizer {
+            constructor() {
+                this.settings = {
+                    particleDensity: 0.5,
+                    circleParticleDensity: 0.7,
+                    colorSpeed: 0.5,
+                    flashIntensity: 0.6,
+                    audioSensitivity: 0.5,
+                    bassBoost: 0.6,
+                    activePreset: 'calm'
+                };
+                
+                this.isPlaying = false;
+                this.audio = null;
+                this.source = null;
+                this.playlist = [];
+                this.currentTrack = 0;
+        
+                // S'assurer que le canvas est initialisé avant tout
+                this.canvas = document.getElementById('visualizer');
+                if (!this.canvas) {
+                    console.error('Canvas element not found');
+                    return;
+                }
+                
+                this.ctx = this.canvas.getContext('2d');
+                this.setupCanvas();
+                this.setupAudio();
+                this.setupUI();
+                this.particles = new ParticleSystem(this);
+
+                // Ajouter la piste par défaut après l'initialisation de l'audio
+                this.addDefaultTrack();
+        
+                this.baseRadius = Math.min(this.width, this.height) / 4;
+                this.audioData = new Uint8Array(0);
+                this.lastTime = 0;
+        
+                // Gestion du redimensionnement
+                window.addEventListener('resize', () => this.resize());
+                
+                // Observer les changements de taille si en mode inspection
+                if (window.ResizeObserver && this.canvas) {
+                    const resizeObserver = new ResizeObserver(entries => {
+                        if (entries[0]) {
+                            this.resize();
+                        }
+                    });
+                    resizeObserver.observe(this.canvas);
+                }
+        
+                this.animate();
+                // Ajouter une musique par défaut
+                this.addDefaultTrack();
+            }
+
+            addDefaultTrack() {
+                // Vérifier si la piste par défaut existe déjà
+                const defaultTrack = {
+                    name: "SKYNET - Intro",
+                    url: "musique1.mp3",
+                    author: "CHAOUSSI CHERIF",
+                    isDefault: true // Marquer comme piste par défaut
+                };
+            
+                // Vérifier si une piste par défaut existe déjà
+                if (!this.playlist.some(track => track.isDefault)) {
+                    this.playlist.push(defaultTrack);
+                    this.loadTrack(0);
+                    this.updatePlaylist();
+                }
+            }
+        
+            setupCanvas() {
+                this.width = window.innerWidth;
+                this.height = window.innerHeight;
+                
+                this.canvas.width = this.width * devicePixelRatio;
+                this.canvas.height = this.height * devicePixelRatio;
+                
+                this.ctx.scale(devicePixelRatio, devicePixelRatio);
+                this.baseRadius = Math.min(this.width, this.height) / 4;
+            
+                // Créer des particules initiales
+                if (this.particles) {
+                    for(let i = 0; i < 100; i++) {
+                        const angle = (Math.PI * 2 / 100) * i;
+                        this.particles.createParticle(
+                            this.width/2 + Math.cos(angle) * this.baseRadius,
+                            this.height/2 + Math.sin(angle) * this.baseRadius,
+                            'circle'
+                        );
+                    }
+                }
+            }
+        
+            resize() {
+                if (!this.canvas || !this.ctx) return;
+        
+                // Obtenir la taille réelle de la fenêtre
+                this.width = window.innerWidth;
+                this.height = window.innerHeight;
+        
+                // Ajuster la taille du canvas
+                this.canvas.width = this.width * devicePixelRatio;
+                this.canvas.height = this.height * devicePixelRatio;
+                
+                // Ajuster le style du canvas
+                this.canvas.style.width = `${this.width}px`;
+                this.canvas.style.height = `${this.height}px`;
+                
+                // Réinitialiser le contexte
+                this.ctx.scale(devicePixelRatio, devicePixelRatio);
+                
+                // Recalculer le rayon de base
+                this.baseRadius = Math.min(this.width, this.height) / 4;
+                
+                // Mettre à jour les particules si elles existent
+                if (this.particles) {
+                    this.particles.updateDimensions(this.width, this.height);
+                }
+            }
+        
+            setupAudio() {
+                this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                this.analyser = this.audioContext.createAnalyser();
+                this.analyser.fftSize = 2048;
+                this.audioData = new Uint8Array(this.analyser.frequencyBinCount);
+                
+                this.analyser.minDecibels = -90;
+                this.analyser.maxDecibels = -10;
+                this.analyser.smoothingTimeConstant = 0.85;
+            }
+        
+            setupUI() {
+                const fileInput = document.getElementById('fileInput');
+                const addSongBtn = document.getElementById('addSongBtn');
+                const playBtn = document.getElementById('playBtn');
+                const prevBtn = document.getElementById('prevBtn');
+                const nextBtn = document.getElementById('nextBtn');
+        
+                addSongBtn.onclick = () => fileInput.click();
+                fileInput.onchange = (e) => this.handleFiles(e.target.files);
+                playBtn.onclick = () => this.togglePlay();
+                prevBtn.onclick = () => this.playPrevious();
+                nextBtn.onclick = () => this.playNext();
+        
+                // Contrôles des effets
+                document.querySelectorAll('input[type="range"]').forEach(input => {
+                    input.oninput = (e) => {
+                        this.settings[e.target.id] = parseFloat(e.target.value);
+                        this.updateVisualization();
+                    };
+                });
+        
+                // Présets
+                document.querySelectorAll('.preset-btn[data-preset]').forEach(btn => {
+                    btn.onclick = () => this.activatePreset(btn.dataset.preset);
+                });
+        
+                // Menu UI
+                const toggleBtn = document.querySelector('.toggle-ui');
+                const uiContainer = document.querySelector('.ui-container');
+                if (toggleBtn && uiContainer) {
+                    toggleBtn.onclick = () => {
+                        uiContainer.classList.toggle('active');
+                        toggleBtn.textContent = uiContainer.classList.contains('active') ? '×' : '⚙️';
+                    };
+                }
+            }
+        
+            handleFiles(files) {
+                Array.from(files).forEach(file => {
+                    const url = URL.createObjectURL(file);
+                    this.playlist.push({
+                        name: file.name,
+                        url: url
+                    });
+                });
+                if (!this.audio && this.playlist.length > 0) {
+                    this.loadTrack(0);
+                }
+                this.updatePlaylist();
+            }
+        
+            loadTrack(index) {
+                if (this.audio) {
+                    this.audio.pause();
+                    this.source && this.source.disconnect();
+                }
+            
+                this.currentTrack = index;
+                const track = this.playlist[index];
+                this.audio = new Audio(track.url);
+                
+                if (this.audioContext && this.analyser) {
+                    this.source = this.audioContext.createMediaElementSource(this.audio);
+                    // Connecter la source à l'analyseur puis à la destination
+                    this.source.connect(this.analyser);
+                    this.analyser.connect(this.audioContext.destination);
+                }
+            
+                this.audio.onended = () => this.playNext();
+                this.updatePlaylist();
+                
+                if (this.isPlaying) {
+                    this.audio.play();
+                }
+            }
+        
+            togglePlay() {
+                if (this.audioContext && this.audioContext.state === 'suspended') {
+                    this.audioContext.resume();
+                }
+        
+                if (!this.audio && this.playlist.length > 0) {
+                    this.loadTrack(0);
+                }
+        
+                if (this.audio) {
+                    if (this.isPlaying) {
+                        this.audio.pause();
+                        document.getElementById('playBtn').textContent = '▶️';
+                    } else {
+                        this.audio.play();
+                        document.getElementById('playBtn').textContent = '⏸️';
+                    }
+                    this.isPlaying = !this.isPlaying;
+                }
+            }
+        
+            playNext() {
+                if (this.playlist.length > 0) {
+                    const nextTrack = (this.currentTrack + 1) % this.playlist.length;
+                    this.loadTrack(nextTrack);
+                }
+            }
+        
+            playPrevious() {
+                if (this.playlist.length > 0) {
+                    const prevTrack = (this.currentTrack - 1 + this.playlist.length) % this.playlist.length;
+                    this.loadTrack(prevTrack);
+                }
+            }
+        
+            updatePlaylist() {
+                const container = document.getElementById('playlistItems');
+                const countElement = document.querySelector('.playlist-count');
+                if (!container) return;
+            
+                container.innerHTML = '';
+                countElement.textContent = `${this.playlist.length} morceau${this.playlist.length > 1 ? 'x' : ''}`;
+            
+                this.playlist.forEach((track, index) => {
+                    const item = document.createElement('div');
+                    item.className = `playlist-item ${index === this.currentTrack ? 'active' : ''}`;
+                    
+                    const info = document.createElement('div');
+                    info.className = 'playlist-item-info';
+                    
+                    const title = document.createElement('div');
+                    title.className = 'playlist-item-title';
+                    title.textContent = track.name;
+                    
+                    const duration = document.createElement('div');
+                    duration.className = 'playlist-item-duration';
+                    
+                    // Obtenir la durée du morceau
+                    if (track.duration) {
+                        duration.textContent = this.formatDuration(track.duration);
+                    } else {
+                        const audio = new Audio(track.url);
+                        audio.addEventListener('loadedmetadata', () => {
+                            track.duration = audio.duration;
+                            duration.textContent = this.formatDuration(audio.duration);
+                        });
+                    }
+            
+                    info.appendChild(title);
+                    info.appendChild(duration);
+            
+                    const controls = document.createElement('div');
+                    controls.className = 'playlist-controls';
+            
+                    const playBtn = document.createElement('button');
+                    playBtn.className = 'playlist-btn';
+                    playBtn.innerHTML = index === this.currentTrack && this.isPlaying ? '⏸️' : '▶️';
+                    playBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        if (index === this.currentTrack) {
+                            this.togglePlay();
+                        } else {
+                            this.loadTrack(index);
+                            this.togglePlay();
+                        }
+                    };
+            
+                    const removeBtn = document.createElement('button');
+                    removeBtn.className = 'playlist-btn';
+                    removeBtn.innerHTML = '✖️';
+                    removeBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        this.removeTrack(index);
+                    };
+            
+                    controls.appendChild(playBtn);
+                    controls.appendChild(removeBtn);
+            
+                    item.appendChild(info);
+                    item.appendChild(controls);
+                    
+                    item.onclick = () => {
+                        this.loadTrack(index);
+                        this.togglePlay();
+                    };
+            
+                    container.appendChild(item);
+                });
+            }
+            
+            // Ajouter cette méthode utilitaire pour formater la durée
+            formatDuration(seconds) {
+                const minutes = Math.floor(seconds / 60);
+                const remainingSeconds = Math.floor(seconds % 60);
+                return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+            }
+            
+            // Ajouter cette méthode pour supprimer un morceau
+            removeTrack(index) {
+                if (this.currentTrack === index && this.isPlaying) {
+                    this.audio.pause();
+                    this.isPlaying = false;
+                }
+                this.playlist.splice(index, 1);
+                if (this.currentTrack >= index) {
+                    this.currentTrack = Math.max(0, this.currentTrack - 1);
+                }
+                this.updatePlaylist();
+            }
+        
+            drawMainCircle() {
+                const centerX = this.width / 2;
+                const centerY = this.height / 2;
+                
+                this.ctx.beginPath();
+                this.ctx.strokeStyle = `hsla(${this.particles.baseHue}, 80%, 50%, 0.8)`;
+                this.ctx.lineWidth = 2;
+        
+                for (let i = 0; i < this.audioData.length; i++) {
+                    const angle = (i / this.audioData.length) * Math.PI * 2;
+                    const value = this.audioData[i];
+                    const amplitude = value / 128.0;
+                    const radiusOffset = amplitude * 50 * this.settings.audioSensitivity;
+                    
+                    const x = centerX + Math.cos(angle) * (this.baseRadius + radiusOffset);
+                    const y = centerY + Math.sin(angle) * (this.baseRadius + radiusOffset);
+                    
+                    if (i === 0) {
+                        this.ctx.moveTo(x, y);
+                    } else {
+                        this.ctx.lineTo(x, y);
+                    }
+                }
+        
+                this.ctx.closePath();
+                
+                this.ctx.shadowBlur = 20;
+                this.ctx.shadowColor = `hsla(${this.particles.baseHue}, 80%, 50%, 0.8)`;
+                this.ctx.stroke();
+                this.ctx.shadowBlur = 0;
+            }
+        
+            updateVisualization() {
+                if (this.analyser) {
+                    const sensitivity = this.settings.audioSensitivity;
+                    this.analyser.smoothingTimeConstant = 0.85 - (sensitivity * 0.3);
+                }
+            }
+        
+            activatePreset(preset) {
+                const presets = {
+                    calm: {
+                        particleDensity: 0.3,
+                        circleParticleDensity: 0.5,
+                        colorSpeed: 0.3,
+                        flashIntensity: 0.4,
+                        audioSensitivity: 0.4,
+                        bassBoost: 0.5
+                    },
+                    energetic: {
+                        particleDensity: 0.7,
+                        circleParticleDensity: 0.8,
+                        colorSpeed: 0.7,
+                        flashIntensity: 0.8,
+                        audioSensitivity: 0.7,
+                        bassBoost: 0.8
+                    },
+                    psychedelic: {
+                        particleDensity: 0.9,
+                        circleParticleDensity: 1.0,
+                        colorSpeed: 1.0,
+                        flashIntensity: 0.9,
+                        audioSensitivity: 0.8,
+                        bassBoost: 0.7
+                    },
+                    minimal: {
+                        particleDensity: 0.2,
+                        circleParticleDensity: 0.4,
+                        colorSpeed: 0.2,
+                        flashIntensity: 0.3,
+                        audioSensitivity: 0.5,
+                        bassBoost: 0.4
+                    }
+                };
+        
+                if (presets[preset]) {
+                    Object.assign(this.settings, presets[preset]);
+                    this.settings.activePreset = preset;
+                    this.updateVisualization();
+                    
+                    // Mise à jour des contrôles UI
+                    Object.keys(presets[preset]).forEach(key => {
+                        const control = document.getElementById(key);
+                        if (control) control.value = presets[preset][key];
+                    });
+                }
+            }
+        
+            animate(timestamp) {
+                const deltaTime = timestamp - this.lastTime || 0;
+                this.lastTime = timestamp;
+            
+                this.ctx.fillStyle = 'rgba(0, 0, 0, 0.15)';
+                this.ctx.fillRect(0, 0, this.width, this.height);
+            
+                // Mise à jour des données audio
+                if (this.analyser && this.isPlaying) {
+                    this.analyser.getByteFrequencyData(this.audioData);
+                } else {
+                    // Animation par défaut seulement quand il n'y a pas de lecture
+                    this.audioData = new Uint8Array(128).fill(0).map((_, i) => 
+                        50 + Math.sin(timestamp * 0.003 + i * 0.2) * 25
+                    );
+                }
+            
+                this.drawMainCircle();
+                this.particles.update(this.audioData, deltaTime);
+                this.particles.draw(this.ctx);
+            
+                requestAnimationFrame((t) => this.animate(t));
+            }
+        }
+        
+        // Initialisation
+        window.addEventListener('load', () => {
+            window.visualizer = new AudioVisualizer();
+        });
+        // car il est assez long et nécessite une organisation soignée
+    </script>
+    <div class="signature">
+        <div class="logo">
+            <svg viewBox="0 0 100 100" width="40" height="40">
+                <!-- Un simple exemple de logo, à personnaliser selon vos besoins -->
+                <circle cx="50" cy="50" r="45" fill="none" stroke="#00ff95" stroke-width="2"/>
+                <path d="M25,50 L75,50 M50,25 L50,75" stroke="#00ff95" stroke-width="2"/>
+            </svg>
+        </div>
+        <div class="brand">SKYNET</div>
+        <div class="author">CHAOUSSI CHERIF</div>
+    </div>
+</body>
+</html>
